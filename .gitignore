@@ -8,12 +8,19 @@ __pycache__/
 *.pyo
 *.pyd
 
-# VS Code settings
+# Editor settings
 .vscode/
+
+# Database files (VERY IMPORTANT)
+*.db
+db/*.db
+
+# Generated images
+generated_images/
+
+# Logs
+*.log
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
