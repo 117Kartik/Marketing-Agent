@@ -1,17 +1,49 @@
-from apis.linkedin_api import fetch_user_posts
 from apis.llm_api import call_llm
+import json
+
 
 def personalization_agent(data):
-    posts = fetch_user_posts()
+    content = data["content"]
 
     prompt = f"""
-    Based on user's previous posts:
-    {posts}
+You are a marketing expert.
 
-    Adjust the tone of this:
-    {data['content']}
-    """
+Improve tone and make it more appealing for the target audience.
 
-    personalized = call_llm(prompt)
+Return STRICT JSON only:
 
-    return {**data, "content": personalized}
+{{
+  "headline": "...",
+  "caption": "...",
+  "hashtags": ["...", "...", "...", "...", "..."],
+  "cta": "..."
+}}
+
+Audience: {data['audience']}
+
+Content:
+Headline: {content.get("headline")}
+Caption: {content.get("caption")}
+CTA: {content.get("cta")}
+"""
+
+    text = call_llm(prompt)
+
+    try:
+        if not text or not isinstance(text, str):
+            raise ValueError("Invalid response")
+
+        clean_text = text.strip()
+
+        if clean_text.startswith("```"):
+            clean_text = clean_text.split("```")[1]
+
+        parsed = json.loads(clean_text)
+
+        # Merge updates
+        data["content"].update(parsed)
+
+    except Exception:
+        pass  # keep original if fails
+
+    return data

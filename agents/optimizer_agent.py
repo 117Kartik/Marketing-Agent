@@ -1,14 +1,44 @@
 from apis.llm_api import call_llm
+import json
+
 
 def optimizer_agent(data):
+    content = data["content"]
+
     prompt = f"""
-    Improve this content for engagement:
+You are a marketing optimizer.
 
-    {data['content']}
+Improve clarity, engagement, and make it more catchy.
 
-    Add strong CTA and hooks.
-    """
+Return STRICT JSON only:
 
-    optimized = call_llm(prompt)
+{{
+  "headline": "...",
+  "caption": "...",
+  "hashtags": ["...", "...", "...", "...", "..."],
+  "cta": "..."
+}}
 
-    return {**data, "content": optimized}
+Content:
+{content}
+"""
+
+    text = call_llm(prompt)
+
+    try:
+        if not text or not isinstance(text, str):
+            raise ValueError("Invalid response")
+
+        clean_text = text.strip()
+
+        if clean_text.startswith("```"):
+            clean_text = clean_text.split("```")[1]
+
+        parsed = json.loads(clean_text)
+
+        data["content"].update(parsed)
+
+    except Exception:
+        pass
+
+    return data
