@@ -1,3 +1,79 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+}
+
+h1 {
+  font-size: 40px;
+  margin-bottom: 25px;
+}
+
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input, textarea {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  resize: none;
+}
+
+button {
+  padding: 10px;
+  background: #2563eb;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.result {
+  margin-top: 30px;
+  background: #1e293b;
+  padding: 25px;
+  border-radius: 12px;
+  width: 600px;
+}
+
+.headline {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.description p {
+  margin: 5px 0;
+  color: #cbd5f5;
+}
+
+.hashtags span {
+  margin-right: 10px;
+  color: #60a5fa;
+}
+
+.cta {
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.image {
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 10px;
+}
