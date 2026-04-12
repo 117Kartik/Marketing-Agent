@@ -18,6 +18,9 @@ function App() {
 
     setLoading(true);
 
+    // 🔥 IMPORTANT FIX: force reset before new request
+    setResult(null);
+
     try {
       const res = await fetch("http://127.0.0.1:8000/api/generate/", {
         method: "POST",
@@ -36,7 +39,8 @@ function App() {
       const data = await res.json();
 
       if (data.success) {
-        setResult(data.data);
+        // 🔥 force new object reference
+        setResult({ ...data.data });
       }
 
     } catch (err) {
@@ -47,16 +51,57 @@ function App() {
     setLoading(false);
   };
 
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000${result.image_path}`);
+      const blob = await res.blob();
+
+      const fileURL = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.setAttribute("download", "marketing_image.jpg");
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(fileURL);
+
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+  };
+
   return (
     <div style={styles.container}>
 
       <h1 style={styles.title}>AI Marketing Agent</h1>
 
-      {/* INPUT CARD */}
+      {/* INPUTS ALWAYS VISIBLE */}
       <div style={styles.inputCard}>
-        <input placeholder="Product" value={product} onChange={(e) => setProduct(e.target.value)} />
-        <input placeholder="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
-        <input placeholder="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} />
+        <input
+          placeholder="Product"
+          value={product}
+          onChange={(e) => setProduct(e.target.value)}
+        />
+
+        <input
+          placeholder="Brand"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+        />
+
+        <input
+          placeholder="Audience"
+          value={audience}
+          onChange={(e) => setAudience(e.target.value)}
+        />
 
         <textarea
           placeholder="Product description"
@@ -71,15 +116,17 @@ function App() {
         />
 
         <button onClick={generateCampaign} style={styles.button}>
-          {loading ? "Generating Ad..." : "Generate Ad"}
+          {loading ? "Generating..." : "Generate Ad"}
         </button>
       </div>
 
+      {/* LOADING */}
+      {loading && <p style={{ marginTop: "20px" }}>Generating campaign...</p>}
+
       {/* OUTPUT */}
       {result && result.content && (
-        <div style={styles.outputWrapper}>
+        <div key={Date.now()} style={styles.outputWrapper}>
 
-          {/* TEXT BOX */}
           <div style={styles.outputBox}>
 
             <h2 style={styles.headline}>
@@ -87,13 +134,8 @@ function App() {
             </h2>
 
             <p style={styles.caption}>
-              {result.content.caption}
+              {result.content.description}
             </p>
-
-            {result.content.description &&
-              result.content.description.split("\n").map((line, i) => (
-                <p key={i} style={styles.description}>{line}</p>
-              ))}
 
             <div style={styles.hashtags}>
               {Array.isArray(result.content.hashtags) &&
@@ -108,16 +150,27 @@ function App() {
 
           </div>
 
-          {/* IMAGE BELOW */}
+          {/* IMAGE */}
           {result.image_path && (
             <div style={styles.imageWrapper}>
+
               <img
                 src={`http://127.0.0.1:8000${result.image_path}`}
                 alt="Generated"
                 style={styles.image}
               />
+
+              <button onClick={handleDownload} style={styles.downloadBtn}>
+                Download Image
+              </button>
+
             </div>
           )}
+
+          {/* BACK BUTTON */}
+          <button onClick={handleReset} style={styles.backBtn}>
+            Clear Output
+          </button>
 
         </div>
       )}
@@ -174,25 +227,19 @@ const styles = {
   outputBox: {
     width: "600px",
     background: "rgba(30, 41, 59, 0.6)",
-    backdropFilter: "blur(10px)",   // 🔥 blur effect
+    backdropFilter: "blur(10px)",
     padding: "25px",
-    borderRadius: "12px",
-    boxShadow: "0 0 20px rgba(0,0,0,0.3)"
+    borderRadius: "12px"
   },
 
   headline: {
     fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: "10px"
+    fontWeight: "bold"
   },
 
   caption: {
-    color: "#cbd5f5",
-    marginBottom: "10px"
-  },
-
-  description: {
-    margin: "5px 0"
+    marginTop: "10px",
+    color: "#cbd5f5"
   },
 
   hashtags: {
@@ -211,11 +258,32 @@ const styles = {
 
   imageWrapper: {
     marginTop: "20px",
-    width: "600px"
+    width: "600px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center"
   },
 
   image: {
     width: "100%",
     borderRadius: "12px"
+  },
+
+  downloadBtn: {
+    marginTop: "10px",
+    padding: "10px",
+    background: "#1e40af",
+    color: "white",
+    border: "none",
+    borderRadius: "6px"
+  },
+
+  backBtn: {
+    marginTop: "20px",
+    padding: "10px",
+    background: "#374151",
+    color: "white",
+    border: "none",
+    borderRadius: "6px"
   }
 };

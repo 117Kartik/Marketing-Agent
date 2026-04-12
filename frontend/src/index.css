@@ -77,3 +77,20 @@ button {
   margin-top: 20px;
   border-radius: 10px;
 }
+
+.download-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px;
+  background: #16a34a;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  text-align: center;
+  transition: 0.2s;
+}
+
+.download-btn:hover {
+  background: #15803d;
+}

@@ -1,49 +1,35 @@
 import requests
-import os
-from dotenv import load_dotenv
 from pathlib import Path
-import base64
-import uuid
+from datetime import datetime
+from urllib.parse import quote
 
-# Load env
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
 
-API_KEY = os.getenv("STABILITY_API_KEY")
-
-# Folder to store images
 IMAGE_DIR = Path(__file__).resolve().parent.parent / "generated_images"
 IMAGE_DIR.mkdir(exist_ok=True)
 
+
 def generate_image(prompt):
-    url = "https://api.stability.ai/v2beta/stable-image/generate/core"
+    try:
+        if not prompt:
+            prompt = "modern product advertisement"
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Accept": "application/json"
-    }
+        # 🔥 encode + add randomness to avoid caching
+        safe_prompt = quote(prompt + f" {datetime.now().timestamp()}")
 
-    data = {
-        "prompt": f"Professional marketing poster of {prompt}, modern, high quality",
-        "output_format": "png"
-    }
+        url = f"https://image.pollinations.ai/prompt/{safe_prompt}"
 
-    response = requests.post(url, headers=headers, files={"none": ''}, data=data)
+        response = requests.get(url, timeout=20)
 
-    if response.status_code != 200:
-        return None, f"Image generation failed: {response.text}"
+        if response.status_code != 200:
+            return None, f"Failed: {response.status_code}"
 
-    image_data = response.json()
+        filename = f"{int(datetime.now().timestamp())}.jpg"
+        filepath = IMAGE_DIR / filename
 
-    # 🔥 Extract base64 image
-    image_base64 = image_data["image"]
+        with open(filepath, "wb") as f:
+            f.write(response.content)
 
-    # 🔥 Generate unique filename
-    filename = f"{uuid.uuid4()}.png"
-    filepath = IMAGE_DIR / filename
+        return str(filepath), "success"
 
-    # 🔥 Save image
-    with open(filepath, "wb") as f:
-        f.write(base64.b64decode(image_base64))
-
-    return str(filepath), "Image saved successfully"
+    except Exception as e:
+        return None, str(e)
