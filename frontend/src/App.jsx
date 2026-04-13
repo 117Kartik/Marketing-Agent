@@ -16,31 +16,8 @@ function App() {
       alert("Enter product and audience");
       return;
     }
-    const fetchHistory = async () => {
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/history/");
-    const data = await res.json();
-
-    if (data.success) {
-      setHistory(data.data);
-    }
-  } catch (err) {
-    console.error(err);
-      }
-    };
-    const loadFromHistory = (item) => {
-      setProduct(item.product);
-      setBrand(item.brand);
-      setAudience(item.audience);
-      setDescription(item.description);
-      setImagePrompt(item.image_prompt);
-
-      setResult(item);
-    };
 
     setLoading(true);
-
-    // 🔥 IMPORTANT FIX: force reset before new request
     setResult(null);
 
     try {
@@ -61,7 +38,6 @@ function App() {
       const data = await res.json();
 
       if (data.success) {
-        // 🔥 force new object reference
         setResult({ ...data.data });
       }
 
@@ -72,21 +48,31 @@ function App() {
 
     setLoading(false);
   };
-  
+
+  // ✅ FIXED: outside function
   const fetchHistory = async () => {
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/history/");
-    const data = await res.json();
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/history/");
+      const data = await res.json();
 
-    console.log("HISTORY:", data); // debug
-
-    if (data.success) {
-      setHistory(data.data);
+      if (data.success) {
+        setHistory(data.data);
+      }
+    } catch (err) {
+      console.error(err);
     }
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
+
+  // ✅ FIXED: outside function
+  const loadFromHistory = (item) => {
+    setProduct(item.product);
+    setBrand(item.brand);
+    setAudience(item.audience);
+    setDescription(item.description);
+    setImagePrompt(item.image_prompt);
+
+    setResult(item);
+  };
 
   const handleDownload = async () => {
     try {
@@ -120,8 +106,12 @@ function App() {
 
       <h1 style={styles.title}>AI Marketing Agent</h1>
 
-      
-      {/* INPUTS ALWAYS VISIBLE */}
+      {/* ✅ Button now safe */}
+      <button onClick={fetchHistory} style={styles.button}>
+        Show History
+      </button>
+
+      {/* INPUT */}
       <div style={styles.inputCard}>
         <input
           placeholder="Product"
@@ -158,7 +148,6 @@ function App() {
         </button>
       </div>
 
-      {/* LOADING */}
       {loading && <p style={{ marginTop: "20px" }}>Generating campaign...</p>}
 
       {/* OUTPUT */}
@@ -166,7 +155,6 @@ function App() {
         <div key={Date.now()} style={styles.outputWrapper}>
 
           <div style={styles.outputBox}>
-
             <h2 style={styles.headline}>
               {result.content.headline}
             </h2>
@@ -185,13 +173,10 @@ function App() {
             <p style={styles.cta}>
               {result.content.cta}
             </p>
-
           </div>
 
-          {/* IMAGE */}
           {result.image_path && (
             <div style={styles.imageWrapper}>
-
               <img
                 src={`http://127.0.0.1:8000${result.image_path}`}
                 alt="Generated"
@@ -201,38 +186,38 @@ function App() {
               <button onClick={handleDownload} style={styles.downloadBtn}>
                 Download Image
               </button>
-
             </div>
           )}
 
-          {/* BACK BUTTON */}
           <button onClick={handleReset} style={styles.backBtn}>
             Clear Output
           </button>
 
         </div>
       )}
-      {history.length > 0 && (
-  <div style={{ marginTop: "30px", width: "600px" }}>
-    <h3>History</h3>
 
-    {history.map((item, i) => (
-      <div
-        key={i}
-        onClick={() => loadFromHistory(item)}
-        style={{
-          background: "#1e293b",
-          padding: "10px",
-          margin: "10px 0",
-          borderRadius: "8px",
-          cursor: "pointer"
-        }}
-      >
-        <b>{item.product}</b> - {item.audience}
-      </div>
-    ))}
-  </div>
-)}
+      {/* HISTORY */}
+      {history.length > 0 && (
+        <div style={{ marginTop: "30px", width: "600px" }}>
+          <h3>History</h3>
+
+          {history.map((item, i) => (
+            <div
+              key={i}
+              onClick={() => loadFromHistory(item)}
+              style={{
+                background: "#1e293b",
+                padding: "10px",
+                margin: "10px 0",
+                borderRadius: "8px",
+                cursor: "pointer"
+              }}
+            >
+              <b>{item.product}</b> - {item.audience}
+            </div>
+          ))}
+        </div>
+      )}
 
     </div>
   );
