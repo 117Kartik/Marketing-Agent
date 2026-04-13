@@ -8,6 +8,7 @@ function App() {
   const [imagePrompt, setImagePrompt] = useState("");
 
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const generateCampaign = async () => {
@@ -15,6 +16,27 @@ function App() {
       alert("Enter product and audience");
       return;
     }
+    const fetchHistory = async () => {
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/history/");
+    const data = await res.json();
+
+    if (data.success) {
+      setHistory(data.data);
+    }
+  } catch (err) {
+    console.error(err);
+      }
+    };
+    const loadFromHistory = (item) => {
+      setProduct(item.product);
+      setBrand(item.brand);
+      setAudience(item.audience);
+      setDescription(item.description);
+      setImagePrompt(item.image_prompt);
+
+      setResult(item);
+    };
 
     setLoading(true);
 
@@ -50,6 +72,21 @@ function App() {
 
     setLoading(false);
   };
+  
+  const fetchHistory = async () => {
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/history/");
+    const data = await res.json();
+
+    console.log("HISTORY:", data); // debug
+
+    if (data.success) {
+      setHistory(data.data);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const handleDownload = async () => {
     try {
@@ -83,6 +120,7 @@ function App() {
 
       <h1 style={styles.title}>AI Marketing Agent</h1>
 
+      
       {/* INPUTS ALWAYS VISIBLE */}
       <div style={styles.inputCard}>
         <input
@@ -174,6 +212,27 @@ function App() {
 
         </div>
       )}
+      {history.length > 0 && (
+  <div style={{ marginTop: "30px", width: "600px" }}>
+    <h3>History</h3>
+
+    {history.map((item, i) => (
+      <div
+        key={i}
+        onClick={() => loadFromHistory(item)}
+        style={{
+          background: "#1e293b",
+          padding: "10px",
+          margin: "10px 0",
+          borderRadius: "8px",
+          cursor: "pointer"
+        }}
+      >
+        <b>{item.product}</b> - {item.audience}
+      </div>
+    ))}
+  </div>
+)}
 
     </div>
   );

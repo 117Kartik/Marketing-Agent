@@ -29,36 +29,54 @@ def generate_campaign(request):
 
             product = body.get("product")
             audience = body.get("audience")
+            brand = body.get("brand")
+            description = body.get("description")
+            image_prompt = body.get("image_prompt")
 
             if not product or not audience:
                 return JsonResponse({"error": "Missing input"}, status=400)
 
-            # 🔥 FULL PIPELINE
+            # 🔹 PIPELINE
             data = ingest(product, audience)
 
-            # merge extra inputs
-            data["brand"] = body.get("brand")
-            data["description"] = body.get("description")
-            data["image_prompt"] = body.get("image_prompt")
+            data["brand"] = brand
+            data["description"] = description
+            data["image_prompt"] = image_prompt
 
             data = creative_agent(data)
-            data = personalization_agent(data)
-            data = optimizer_agent(data)
 
-            # 🔥 SAVE TO DATABASE
-            Campaign.objects.create(
-                product=data.get("product"),
-                brand=data.get("brand"),
-                audience=data.get("audience"),
-                description=data.get("description"),
+            # 🔥 SAFETY CHECK
+            if "content" not in data:
+                return JsonResponse({
+                    "success": False,
+                    "error": "AI failed to generate content"
+                })
 
-                headline=data["content"].get("headline"),
-                caption=data["content"].get("description"),
-                hashtags=pyjson.dumps(data["content"].get("hashtags")),
-                cta=data["content"].get("cta"),
+            # 🔥 OPTIONAL AGENTS (SAFE)
+            try:
+                data = personalization_agent(data)
+                data = optimizer_agent(data)
+            except Exception as e:
+                print("Optional agent error:", str(e))
 
-                image_path=data.get("image_path")
-            )
+            # 🔥 SAVE SAFELY
+            try:
+                Campaign.objects.create(
+                    product=product,
+                    brand=brand,
+                    audience=audience,
+                    description=description,
+                    image_prompt=image_prompt,
+
+                    headline=data["content"].get("headline", ""),
+                    generated_text=data["content"].get("description", ""),
+                    hashtags=json.dumps(data["content"].get("hashtags", [])),
+                    cta=data["content"].get("cta", ""),
+
+                    image_path=data.get("image_path")
+                )
+            except Exception as e:
+                print("DB SAVE ERROR:", str(e))
 
             return JsonResponse({
                 "success": True,
@@ -66,14 +84,17 @@ def generate_campaign(request):
             })
 
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            print("MAIN ERROR:", str(e))
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            }, status=500)
 
+    # ✅ ONLY ONE RETURN HERE
     return JsonResponse({"message": "Use POST request"})
 
-
-# 🔥 HISTORY API
 def get_history(request):
-    campaigns = Campaign.objects.all().order_by("-created_at")[:20]
+    campaigns = Campaign.objects.all().order_by("-created_at")[:10]
 
     data = []
 
@@ -82,12 +103,17 @@ def get_history(request):
             "product": c.product,
             "brand": c.brand,
             "audience": c.audience,
-            "headline": c.headline,
-            "caption": c.caption,
-            "hashtags": json.loads(c.hashtags),
-            "cta": c.cta,
-            "image_path": c.image_path,
-            "created_at": c.created_at
+            "description": c.description,
+            "image_prompt": c.image_prompt,
+
+            "content": {
+                "headline": c.headline,
+                "description": c.generated_text,
+                "hashtags": json.loads(c.hashtags) if c.hashtags else [],
+                "cta": c.cta
+            },
+
+            "image_path": c.image_path
         })
 
     return JsonResponse({
