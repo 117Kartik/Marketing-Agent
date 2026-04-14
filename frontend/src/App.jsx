@@ -7,9 +7,11 @@ function App() {
   const [description, setDescription] = useState("");
   const [imagePrompt, setImagePrompt] = useState("");
 
+  const [loading, setLoading] = useState(false);  
+
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
 
   const generateCampaign = async () => {
     if (!product || !audience) {
@@ -97,6 +99,31 @@ function App() {
     }
   };
 
+
+  const sendEmails = async () => {
+    if (!file) {
+      alert("Upload CSV file first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/publish/", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      alert(data.message || data.error);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send emails");
+    }
+  };
   const handleReset = () => {
     setResult(null);
   };
@@ -104,9 +131,27 @@ function App() {
   return (
     <div style={styles.container}>
 
-      <h1 style={styles.title}>AI Marketing Agent</h1>
+      <div style={styles.topBar}>
+  
+        <div style={styles.leftSpace}></div>
 
-      {/* ✅ Button now safe */}
+        <h1 style={styles.title}>AI Marketing Agent</h1>
+
+        <div style={styles.rightControls}>
+          <button onClick={sendEmails} style={styles.sendBtn}>
+            Send Emails
+          </button>
+
+          <input
+            type="file"
+            onChange={(e) => setFile(e.target.files[0])}
+            style={styles.fileInput}
+          />
+        </div>
+
+      </div>
+
+      {/* Button now safe */}
       <button onClick={fetchHistory} style={styles.button}>
         Show History
       </button>
@@ -142,9 +187,10 @@ function App() {
           value={imagePrompt}
           onChange={(e) => setImagePrompt(e.target.value)}
         />
+        
 
         <button onClick={generateCampaign} style={styles.button}>
-          {loading ? "Generating..." : "Generate Ad"}
+          {loading ? "Generating..." : "Generate"}
         </button>
       </div>
 
@@ -198,26 +244,42 @@ function App() {
 
       {/* HISTORY */}
       {history.length > 0 && (
-        <div style={{ marginTop: "30px", width: "600px" }}>
-          <h3>History</h3>
+  <div style={styles.historyContainer}>
+    <h3 style={{ marginBottom: "10px" }}>History</h3>
 
-          {history.map((item, i) => (
-            <div
-              key={i}
-              onClick={() => loadFromHistory(item)}
-              style={{
-                background: "#1e293b",
-                padding: "10px",
-                margin: "10px 0",
-                borderRadius: "8px",
-                cursor: "pointer"
-              }}
-            >
-              <b>{item.product}</b> - {item.audience}
-            </div>
-          ))}
+    <div style={styles.historyGrid}>
+      {history.map((item, i) => (
+        <div
+          key={i}
+          style={styles.historyCard}
+          onClick={() => loadFromHistory(item)}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          {/* IMAGE */}
+          {item.image_path && (
+            <img
+              src={`http://127.0.0.1:8000${item.image_path}`}
+              alt="history"
+              style={styles.historyImage}
+            />
+          )}
+
+          {/* TEXT */}
+          <div style={styles.historyText}>
+            <h4 style={{ margin: "5px 0" }}>
+              {item.content?.headline || "No headline"}
+            </h4>
+
+            <p style={{ fontSize: "12px", color: "#94a3b8" }}>
+              {item.product} • {item.audience}
+            </p>
+          </div>
         </div>
-      )}
+      ))}
+    </div>
+  </div>
+)}
 
     </div>
   );
@@ -329,5 +391,147 @@ const styles = {
     color: "white",
     border: "none",
     borderRadius: "6px"
-  }
+  },
+
+  historyContainer: {
+  marginTop: "40px",
+  width: "80%",
+  maxWidth: "900px"
+},
+
+historyGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+  gap: "15px"
+},
+
+historyCard: {
+  background: "#1e293b",
+  borderRadius: "10px",
+  overflow: "hidden",
+  cursor: "pointer",
+  transition: "0.3s",
+},
+
+historyImage: {
+  width: "100%",
+  height: "120px",
+  objectFit: "cover"
+},
+
+historyText: {
+  padding: "10px"
+},
+historyCard: {
+  background: "#1e293b",
+  borderRadius: "10px",
+  overflow: "hidden",
+  cursor: "pointer",
+  transition: "0.3s ease",
+},
+topBar: {
+  width: "100%",
+  maxWidth: "900px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "20px"
+},
+
+sendBtn: {
+  padding: "10px 15px",
+  background: "#16a34a",
+  border: "none",
+  color: "white",
+  borderRadius: "6px",
+  cursor: "pointer"
+},
+sendBtn: {
+  padding: "10px 15px",
+  background: "#16a34a",
+  border: "none",
+  color: "white",
+  borderRadius: "6px",
+  cursor: "pointer",
+  transition: "0.3s"
+},
+container: {
+  minHeight: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  padding: "40px",
+  background: "linear-gradient(135deg, #0f172a, #1e293b)"
+},
+
+topBar: {
+  width: "100%",
+  maxWidth: "1000px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "30px"
+},
+
+leftSpace: {
+  width: "120px"
+},
+
+title: {
+  fontSize: "34px",
+  fontWeight: "bold",
+  textAlign: "center"
+},
+
+rightControls: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+  alignItems: "flex-end"
+},
+
+sendBtn: {
+  padding: "10px 16px",
+  background: "#22c55e",
+  border: "none",
+  color: "white",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold"
+},
+
+fileInput: {
+  fontSize: "12px",
+  color: "white"
+},
+
+inputCard: {
+  background: "rgba(30, 41, 59, 0.6)",
+  backdropFilter: "blur(12px)",
+  padding: "20px",
+  borderRadius: "16px",
+  width: "350px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  boxShadow: "0 8px 30px rgba(0,0,0,0.4)"
+},
+
+outputBox: {
+  background: "rgba(30, 41, 59, 0.6)",
+  backdropFilter: "blur(15px)",
+  padding: "25px",
+  borderRadius: "16px",
+  boxShadow: "0 8px 30px rgba(0,0,0,0.4)"
+},
+button: {
+  padding: "10px",
+  background: "#2563eb",
+  border: "none",
+  color: "white",
+  borderRadius: "8px",
+  cursor: "pointer",
+  transition: "0.3s"
+},
+
 };

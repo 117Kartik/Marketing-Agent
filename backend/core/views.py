@@ -1,17 +1,25 @@
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
 import sys
 import os
 
-# Add root path
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(BASE_DIR)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
+
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+from agents.publishing_agent import send_emails
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+from agents.publishing_agent import send_emails
+
 
 from agents.ingestion_agent import ingest
 from agents.creative_agent import creative_agent
 from agents.personalization_agent import personalization_agent
 from agents.optimizer_agent import optimizer_agent
+from agents.publishing_agent import send_emails
 
 from core.models import Campaign   # ✅ IMPORTANT
 import json as pyjson
@@ -36,7 +44,7 @@ def generate_campaign(request):
             if not product or not audience:
                 return JsonResponse({"error": "Missing input"}, status=400)
 
-            # 🔹 PIPELINE
+            # PIPELINE
             data = ingest(product, audience)
 
             data["brand"] = brand
@@ -45,21 +53,21 @@ def generate_campaign(request):
 
             data = creative_agent(data)
 
-            # 🔥 SAFETY CHECK
+            # SAFETY CHECK
             if "content" not in data:
                 return JsonResponse({
                     "success": False,
                     "error": "AI failed to generate content"
                 })
 
-            # 🔥 OPTIONAL AGENTS (SAFE)
+            # OPTIONAL AGENTS (SAFE)
             try:
                 data = personalization_agent(data)
                 data = optimizer_agent(data)
             except Exception as e:
                 print("Optional agent error:", str(e))
 
-            # 🔥 SAVE SAFELY
+            # SAVE SAFELY
             try:
                 Campaign.objects.create(
                     product=product,
@@ -90,7 +98,7 @@ def generate_campaign(request):
                 "error": str(e)
             }, status=500)
 
-    # ✅ ONLY ONE RETURN HERE
+    # ONLY ONE RETURN HERE
     return JsonResponse({"message": "Use POST request"})
 
 def get_history(request):
@@ -120,3 +128,57 @@ def get_history(request):
         "success": True,
         "data": data
     })
+
+@csrf_exempt
+def publish_campaign(request):
+    if request.method == "POST":
+        try:
+            file = request.FILES.get("file")
+
+            if not file:
+                return JsonResponse({"error": "No file uploaded"}, status=400)
+
+            # 🔹 Save file temporarily
+            file_path = f"temp_{file.name}"
+            with open(file_path, "wb+") as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+
+            # 🔥 STEP 1: DEFINE latest FIRST
+            latest = Campaign.objects.last()
+
+            # 🔥 STEP 2: CHECK IF EXISTS
+            if not latest:
+                return JsonResponse({
+                    "success": False,
+                    "error": "No campaign found. Generate one first."
+                }, status=400)
+
+            # 🔥 STEP 3: SAFE HASHTAGS
+            try:
+                hashtags = json.loads(latest.hashtags) if latest.hashtags else []
+            except:
+                hashtags = []
+
+            # 🔥 STEP 4: BUILD CAMPAIGN DATA
+            campaign_data = {
+                "content": {
+                    "headline": latest.headline or "",
+                    "description": latest.generated_text or "",
+                    "hashtags": hashtags,
+                    "cta": latest.cta or ""
+                }
+            }
+
+            # 🔥 STEP 5: SEND EMAILS
+            success, msg = send_emails(file_path, campaign_data)
+
+            return JsonResponse({
+                "success": success,
+                "message": msg
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"message": "POST only"})
