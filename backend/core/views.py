@@ -176,13 +176,18 @@ def publish_campaign(request):
             image_url = f"http://127.0.0.1:8000{latest.image_path}" if latest.image_path else ""
 
             # STEP 4: BUILD CAMPAIGN DATA
+            image_url = f"http://127.0.0.1:8000{latest.image_path}" if latest.image_path else ""
+
             campaign_data = {
+                "brand": latest.brand or "YourBrand",   # 🔥 keep brand at top level
+
                 "content": {
                     "headline": latest.headline or "",
                     "description": latest.generated_text or "",
                     "hashtags": hashtags,
                     "cta": latest.cta or ""
                 },
+
                 "image_url": image_url
             }
 
