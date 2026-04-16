@@ -25,3 +25,7 @@ generated_images/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Excel files
+*.xlsx
+*.xls
