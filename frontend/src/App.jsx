@@ -9,6 +9,7 @@ function App() {
 
   const [loading, setLoading] = useState(false);  
 
+  const [activeTab, setActiveTab] = useState("generate");
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [file, setFile] = useState(null);
@@ -129,160 +130,214 @@ function App() {
   };
 
   return (
-    <div style={styles.container}>
+  <div style={styles.appLayout}>
 
-      <div style={styles.topBar}>
-  
-        <div style={styles.leftSpace}></div>
+    {/* SIDEBAR */}
+    <div style={styles.sidebar}>
+      <h2 style={{ marginBottom: "20px" }}>Dashboard</h2>
 
-        <h1 style={styles.title}>AI Marketing Agent</h1>
+      <div onClick={() => setActiveTab("generate")} style={styles.navItem}>
+        Generate
+      </div>
 
-        <div style={styles.rightControls}>
-          <button onClick={sendEmails} style={styles.sendBtn}>
-            Send Emails
-          </button>
+      <div
+        onClick={() => {
+          setActiveTab("history");
+          fetchHistory();
+        }}
+        style={styles.navItem}>
+        History
+      </div>
 
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-            style={styles.fileInput}
-          />
+      <div onClick={() => setActiveTab("publish")} style={styles.navItem}>
+        Publish
+      </div>
+    </div>
+
+    {/* MAIN */}
+    <div style={styles.mainContent}>
+
+      <div style={styles.container}>
+
+        {/* TOP BAR */}
+        <div style={styles.topBar}>
+          <h1 style={styles.titleCentered}>AI Marketing Agent</h1>
+          <div style={styles.rightControls}></div>
+
+          <div style={styles.rightControls}>
+            {activeTab === "publish" && (
+              <>
+                <button onClick={sendEmails} style={styles.sendBtn}>
+                  Send Emails
+                </button>
+
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files[0])}
+                  style={styles.fileInput}
+                />
+              </>
+            )}
+          </div>
         </div>
 
-      </div>
+        {/* ================= GENERATE ================= */}
+        {activeTab === "generate" && (
+          <>
 
-      {/* Button now safe */}
-      <button onClick={fetchHistory} style={styles.button}>
-        Show History
-      </button>
-
-      {/* INPUT */}
-      <div style={styles.inputCard}>
-        <input
-          placeholder="Product"
-          value={product}
-          onChange={(e) => setProduct(e.target.value)}
-        />
-
-        <input
-          placeholder="Brand"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-        />
-
-        <input
-          placeholder="Audience"
-          value={audience}
-          onChange={(e) => setAudience(e.target.value)}
-        />
-
-        <textarea
-          placeholder="Product description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-
-        <input
-          placeholder="Image style (optional)"
-          value={imagePrompt}
-          onChange={(e) => setImagePrompt(e.target.value)}
-        />
-        
-
-        <button onClick={generateCampaign} style={styles.button}>
-          {loading ? "Generating..." : "Generate"}
-        </button>
-      </div>
-
-      {loading && <p style={{ marginTop: "20px" }}>Generating campaign...</p>}
-
-      {/* OUTPUT */}
-      {result && result.content && (
-        <div key={Date.now()} style={styles.outputWrapper}>
-
-          <div style={styles.outputBox}>
-            <h2 style={styles.headline}>
-              {result.content.headline}
-            </h2>
-
-            <p style={styles.caption}>
-              {result.content.description}
-            </p>
-
-            <div style={styles.hashtags}>
-              {Array.isArray(result.content.hashtags) &&
-                result.content.hashtags.map((tag, i) => (
-                  <span key={i} style={styles.tag}>{tag}</span>
-                ))}
-            </div>
-
-            <p style={styles.cta}>
-              {result.content.cta}
-            </p>
-          </div>
-
-          {result.image_path && (
-            <div style={styles.imageWrapper}>
-              <img
-                src={`http://127.0.0.1:8000${result.image_path}`}
-                alt="Generated"
-                style={styles.image}
+            <div style={styles.inputCard}>
+              <input
+                placeholder="Product"
+                value={product}
+                onChange={(e) => setProduct(e.target.value)}
               />
 
-              <button onClick={handleDownload} style={styles.downloadBtn}>
-                Download Image
+              <input
+                placeholder="Brand"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+              />
+
+              <input
+                placeholder="Audience"
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
+              />
+
+              <textarea
+                placeholder="Product description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+
+              <input
+                placeholder="Image style (optional)"
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+              />
+
+              <button onClick={generateCampaign} style={styles.button}>
+                {loading ? "Generating..." : "Generate"}
               </button>
             </div>
-          )}
 
-          <button onClick={handleReset} style={styles.backBtn}>
-            Clear Output
-          </button>
+            {loading && (
+              <p style={{ marginTop: "20px" }}>
+                Generating campaign...
+              </p>
+            )}
 
-        </div>
-      )}
+            {result && result.content && (
+              <div key={Date.now()} style={styles.outputWrapper}>
 
-      {/* HISTORY */}
-      {history.length > 0 && (
-  <div style={styles.historyContainer}>
-    <h3 style={{ marginBottom: "10px" }}>History</h3>
+                <div style={styles.outputBox}>
+                  <h2 style={styles.headline}>
+                    {result.content.headline}
+                  </h2>
 
-    <div style={styles.historyGrid}>
-      {history.map((item, i) => (
-        <div
-          key={i}
-          style={styles.historyCard}
-          onClick={() => loadFromHistory(item)}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          {/* IMAGE */}
-          {item.image_path && (
-            <img
-              src={`http://127.0.0.1:8000${item.image_path}`}
-              alt="history"
-              style={styles.historyImage}
-            />
-          )}
+                  <p style={styles.caption}>
+                    {result.content.description}
+                  </p>
 
-          {/* TEXT */}
-          <div style={styles.historyText}>
-            <h4 style={{ margin: "5px 0" }}>
-              {item.content?.headline || "No headline"}
-            </h4>
+                  <div style={styles.hashtags}>
+                    {Array.isArray(result.content.hashtags) &&
+                      result.content.hashtags.map((tag, i) => (
+                        <span key={i} style={styles.tag}>
+                          {tag}
+                        </span>
+                      ))}
+                  </div>
 
-            <p style={{ fontSize: "12px", color: "#94a3b8" }}>
-              {item.product} • {item.audience}
-            </p>
+                  <p style={styles.cta}>
+                    {result.content.cta}
+                  </p>
+                </div>
+
+                {result.image_path && (
+                  <div style={styles.imageWrapper}>
+                    <img
+                      src={`http://127.0.0.1:8000${result.image_path}`}
+                      alt="Generated"
+                      style={styles.image}
+                    />
+
+                    <button
+                      onClick={handleDownload}
+                      style={styles.downloadBtn}
+                    >
+                      Download Image
+                    </button>
+                  </div>
+                )}
+
+                <button onClick={handleReset} style={styles.backBtn}>
+                  Clear Output
+                </button>
+
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ================= HISTORY ================= */}
+        {activeTab === "history" && (
+          <>
+            {history.length > 0 && (
+              <div style={styles.historyContainer}>
+                <h3 style={{ marginBottom: "10px" }}>History</h3>
+
+                <div style={styles.historyGrid}>
+                  {history.map((item, i) => (
+                    <div
+                      key={i}
+                      style={styles.historyCard}
+                      onClick={() => {
+                        loadFromHistory(item);
+                        setActiveTab("generate");
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform = "scale(1.05)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = "scale(1)")
+                      }
+                    >
+                      {item.image_path && (
+                        <img
+                          src={`http://127.0.0.1:8000${item.image_path}`}
+                          alt="history"
+                          style={styles.historyImage}
+                        />
+                      )}
+
+                      <div style={styles.historyText}>
+                        <h4 style={{ margin: "5px 0" }}>
+                          {item.content?.headline || "No headline"}
+                        </h4>
+
+                        <p style={{ fontSize: "12px", color: "#94a3b8" }}>
+                          {item.product} • {item.audience}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ================= PUBLISH ================= */}
+        {activeTab === "publish" && (
+          <div style={{ marginTop: "40px" }}>
+            <p>Upload CSV and send campaign emails.</p>
           </div>
-        </div>
-      ))}
+        )}
+
+      </div>
     </div>
   </div>
-)}
-
-    </div>
-  );
+);
 }
 
 export default App;
@@ -369,6 +424,7 @@ const styles = {
     flexDirection: "column",
     alignItems: "center"
   },
+  
 
   image: {
     width: "100%",
@@ -429,14 +485,6 @@ historyCard: {
   cursor: "pointer",
   transition: "0.3s ease",
 },
-topBar: {
-  width: "100%",
-  maxWidth: "900px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px"
-},
 
 sendBtn: {
   padding: "10px 15px",
@@ -469,7 +517,8 @@ topBar: {
   maxWidth: "1000px",
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "center", 
+  position: "relative",
   marginBottom: "30px"
 },
 
@@ -484,10 +533,12 @@ title: {
 },
 
 rightControls: {
+  position: "absolute",
+  right: "0",
+  top: "0",
   display: "flex",
   flexDirection: "column",
-  gap: "10px",
-  alignItems: "flex-end"
+  gap: "10px"
 },
 
 sendBtn: {
@@ -532,6 +583,40 @@ button: {
   borderRadius: "8px",
   cursor: "pointer",
   transition: "0.3s"
+},
+
+appLayout: {
+  display: "flex",
+  height: "100vh",
+  background: "#0f172a",
+  color: "white"
+},
+
+sidebar: {
+  width: "220px",
+  background: "#020617",
+  padding: "20px",
+  borderRight: "1px solid #1e293b"
+},
+
+navItem: {
+  padding: "10px",
+  marginBottom: "10px",
+  cursor: "pointer",
+  borderRadius: "6px",
+  background: "#1e293b"
+},
+
+mainContent: {
+  flex: 1,
+  overflowY: "auto"
+},
+
+titleCentered: {
+  width: "100%",
+  textAlign: "center",
+  fontSize: "32px",
+  fontWeight: "bold"
 },
 
 };
