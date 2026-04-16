@@ -12,6 +12,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("generate");
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [file, setFile] = useState(null);
 
   const generateCampaign = async () => {
@@ -102,29 +103,34 @@ function App() {
 
 
   const sendEmails = async () => {
-    if (!file) {
-      alert("Upload CSV file first");
-      return;
-    }
+  if (!file) {
+    alert("Upload CSV/Excel file first");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("file", file);
+  if (!selectedCampaign) {
+    alert("Select a campaign first");
+    return;
+  }
 
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/publish/", {
-        method: "POST",
-        body: formData
-      });
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("campaign_id", selectedCampaign.id);
 
-      const data = await res.json();
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/publish/", {
+      method: "POST",
+      body: formData
+    });
 
-      alert(data.message || data.error);
+    const data = await res.json();
+    alert(data.message || data.error);
 
-    } catch (err) {
-      console.error(err);
-      alert("Failed to send emails");
-    }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send emails");
+  }
+};
   const handleReset = () => {
     setResult(null);
   };
@@ -329,10 +335,47 @@ function App() {
 
         {/* ================= PUBLISH ================= */}
         {activeTab === "publish" && (
-          <div style={{ marginTop: "40px" }}>
-            <p>Upload CSV and send campaign emails.</p>
+        <div style={{ marginTop: "20px" }}>
+
+          <p>Select a campaign to send:</p>
+
+          {/* EMAIL INPUTS */}
+          
+
+          {/* HISTORY CARDS (UNCHANGED) */}
+          <div style={styles.historyGrid}>
+            {history.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  ...styles.historyCard,
+                  border: selectedCampaign && selectedCampaign.id === item.id
+                    ? "2px solid #22c55e"
+                    : "none"
+                }}
+                onClick={() => setSelectedCampaign(item)}
+              >
+                {item.image_path && (
+                  <img
+                    src={`http://127.0.0.1:8000${item.image_path}`}
+                    alt="history"
+                    style={styles.historyImage}
+                  />
+                )}
+
+                {selectedCampaign && selectedCampaign.id === item.id && (
+                  <div style={styles.tickMark}>✔</div>
+                )}
+
+                <div style={styles.historyText}>
+                  <h4>{item.content?.headline}</h4>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+
+        </div>
+      )}
 
       </div>
     </div>
@@ -461,14 +504,6 @@ historyGrid: {
   gap: "15px"
 },
 
-historyCard: {
-  background: "#1e293b",
-  borderRadius: "10px",
-  overflow: "hidden",
-  cursor: "pointer",
-  transition: "0.3s",
-},
-
 historyImage: {
   width: "100%",
   height: "120px",
@@ -484,6 +519,7 @@ historyCard: {
   overflow: "hidden",
   cursor: "pointer",
   transition: "0.3s ease",
+  position: "relative",
 },
 
 sendBtn: {
@@ -616,6 +652,21 @@ titleCentered: {
   width: "100%",
   textAlign: "center",
   fontSize: "32px",
+  fontWeight: "bold"
+},
+tickMark: {
+  position: "absolute",
+  top: "8px",
+  right: "8px",
+  background: "#22c55e",
+  color: "white",
+  borderRadius: "50%",
+  width: "24px",
+  height: "24px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "14px",
   fontWeight: "bold"
 },
 

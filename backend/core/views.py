@@ -101,6 +101,10 @@ def generate_campaign(request):
     # ONLY ONE RETURN HERE
     return JsonResponse({"message": "Use POST request"})
 
+from django.http import JsonResponse
+import json
+from core.models import Campaign
+
 def get_history(request):
     campaigns = Campaign.objects.all().order_by("-created_at")[:10]
 
@@ -108,6 +112,8 @@ def get_history(request):
 
     for c in campaigns:
         data.append({
+            "id": c.id,   
+
             "product": c.product,
             "brand": c.brand,
             "audience": c.audience,
@@ -138,39 +144,49 @@ def publish_campaign(request):
             if not file:
                 return JsonResponse({"error": "No file uploaded"}, status=400)
 
+            # GET
+            campaign_id = request.POST.get("campaign_id")
+
+
             # 🔹 Save file temporarily
             file_path = f"temp_{file.name}"
             with open(file_path, "wb+") as f:
                 for chunk in file.chunks():
                     f.write(chunk)
 
-            # 🔥 STEP 1: DEFINE latest FIRST
-            latest = Campaign.objects.last()
+            # 🔹 UPDATED: SELECT CAMPAIGN
+            if campaign_id:
+                latest = Campaign.objects.filter(id=campaign_id).first()
+            else:
+                latest = Campaign.objects.last()
 
-            # 🔥 STEP 2: CHECK IF EXISTS
+            # STEP 2: CHECK IF EXISTS
             if not latest:
                 return JsonResponse({
                     "success": False,
                     "error": "No campaign found. Generate one first."
                 }, status=400)
 
-            # 🔥 STEP 3: SAFE HASHTAGS
+            # STEP 3: SAFE HASHTAGS
             try:
                 hashtags = json.loads(latest.hashtags) if latest.hashtags else []
             except:
                 hashtags = []
 
-            # 🔥 STEP 4: BUILD CAMPAIGN DATA
+            image_url = f"http://127.0.0.1:8000{latest.image_path}" if latest.image_path else ""
+
+            # STEP 4: BUILD CAMPAIGN DATA
             campaign_data = {
                 "content": {
                     "headline": latest.headline or "",
                     "description": latest.generated_text or "",
                     "hashtags": hashtags,
                     "cta": latest.cta or ""
-                }
+                },
+                "image_url": image_url
             }
 
-            # 🔥 STEP 5: SEND EMAILS
+            # 🔹 UPDATED: PASS EMAIL CREDENTIALS
             success, msg = send_emails(file_path, campaign_data)
 
             return JsonResponse({
