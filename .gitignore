@@ -14,6 +14,7 @@ __pycache__/
 # Database files (VERY IMPORTANT)
 *.db
 db/*.db
+db.sqlite3
 
 # Generated images
 generated_images/
